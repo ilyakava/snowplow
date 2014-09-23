@@ -55,6 +55,13 @@ $ mvn clean compile assembly:single
 $ java -jar target/kinesis-redshift-sink-0.0.1-jar-with-dependencies.jar
 ```
 
+Take care to export the environment variables:
+- REDSHIFT_USERNAME
+- REDSHIFT_PASSWORD
+- REDSHIFT_URL
+- REDSHIFT_ENDPOINT
+- BUFFER_RECORD_COUNT_LIMIT
+
 ## Copyright and license
 
 See the [LICENSE](LICENSE.txt) file.
