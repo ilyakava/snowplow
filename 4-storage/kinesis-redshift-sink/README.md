@@ -46,13 +46,13 @@ Kinesis Sink apps, since these are included in the built jar.
 Assuming you already have [Maven][mvn] installed:
 
 ```bash
-$ mvn clean compile assembly:single
+$ mvn clean package
 ```
 
 ## Running
 
 ```bash
-$ java -jar target/kinesis-redshift-sink-0.0.1-jar-with-dependencies.jar
+$ java -jar target/kinesis-redshift-sink-0.0.1.jar
 ```
 
 Take care to export the environment variables:
