@@ -65,6 +65,7 @@ class KinesisSink(provider: AWSCredentialsProvider,
 
   // The output stream for enriched events.
   private val enrichedStream = createAndLoadStream()
+  private var enrichedStreamAge = 0
 
   /**
    * Checks if a stream exists.
@@ -126,6 +127,7 @@ class KinesisSink(provider: AWSCredentialsProvider,
    * is implemented.
    */
   def storeCanonicalOutput(output: String, key: String) = {
+    enrichedStreamAge += 1
     val putData = for {
       p <- enrichedStream.put(
         ByteBuffer.wrap(output.getBytes),
@@ -133,7 +135,7 @@ class KinesisSink(provider: AWSCredentialsProvider,
       )
     } yield p
     val result = Await.result(putData, Duration(60, SECONDS))
-    info(s"Writing successful")
+    info(s"Write #${enrichedStreamAge} was successful")
     info(s"  + ShardId: ${result.shardId}")
     info(s"  + SequenceNumber: ${result.sequenceNumber}")
   }

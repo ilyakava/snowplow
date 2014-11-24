@@ -26,6 +26,7 @@ object SnowplowKinesisEnrichBuild extends Build {
   // Define our project, with basic project information and library dependencies
   lazy val project = Project("snowplow-kinesis-enrich", file("."))
     .settings(buildSettings: _*)
+    .settings(com.typesafe.sbt.SbtNativePackager.packageArchetype.java_application: _*)
     .settings(
       libraryDependencies ++= Seq(
         Libraries.logging,

@@ -36,12 +36,15 @@ import common.MaybeCanonicalInput
 import common.outputs.CanonicalOutput
 import common.enrichments.EnrichmentManager
 import common.enrichments.PrivacyEnrichments.AnonOctets
+import org.slf4j.LoggerFactory
 
 /**
  * Abstract base for the different sources
  * we support.
  */
 abstract class AbstractSource(config: KinesisEnrichConfig) {
+  private lazy val log = LoggerFactory.getLogger(getClass())
+  import log.{error, debug, info, trace}
   
   /**
    * Never-ending processing loop over source stream.
@@ -58,12 +61,30 @@ abstract class AbstractSource(config: KinesisEnrichConfig) {
   protected val kinesisProvider = createKinesisProvider
 
   // Initialize the sink to output enriched events to.
-  protected val sink: Option[ISink] = config.sink match {
-    case Sink.Kinesis => new KinesisSink(kinesisProvider, config).some
-    case Sink.Stdouterr => new StdouterrSink().some
-    case Sink.Test => None
+  // protected val sink: Option[ISink] = config.sink match {
+  //   case Sink.Kinesis => new KinesisSink(kinesisProvider, config).some
+  //   case Sink.Stdouterr => new StdouterrSink().some
+  //   case Sink.Test => None
+  // }
+
+  protected var latestSink = new KinesisSink(kinesisProvider, config).some
+  protected var latestSinkAge = 0
+  protected var totalSinkAge = 0
+
+  implicit def sink(): Option[ISink] = {
+    // if (latestSinkAge > 500) {
+    //   info(s"refreshing KinesisSink")
+    //   latestSink = new KinesisSink(kinesisProvider, config).some
+    //   latestSinkAge = 0
+    // }
+    return latestSink
   }
 
+  private lazy val ipGeo = new IpGeo(
+    dbFile = config.maxmindFile,
+    memCache = false,
+    lruCache = 20000
+  )
   // Iterate through an enriched CanonicalOutput object and tab separate
   // the fields to a string.
   def tabSeparateCanonicalOutput(output: CanonicalOutput): String = {
@@ -91,11 +112,6 @@ abstract class AbstractSource(config: KinesisEnrichConfig) {
         // TODO: https://github.com/snowplow/snowplow/issues/463
       case Success(None)     => None // Do nothing
       case Success(Some(ci)) => {
-        val ipGeo = new IpGeo(
-          dbFile = config.maxmindFile,
-          memCache = false,
-          lruCache = 20000
-        )
         val anonOctets =
           if (!config.anonIpEnabled || config.anonOctets == 0) {
             AnonOctets.None
@@ -112,9 +128,12 @@ abstract class AbstractSource(config: KinesisEnrichConfig) {
         canonicalOutput.toValidationNel match {
           case Success(co) =>
             val ts = tabSeparateCanonicalOutput(co)
-            for (s <- sink) {
+            for (s <- sink()) {
               // TODO: pull this side effect into parent function
               s.storeCanonicalOutput(ts, co.user_ipaddress)
+              latestSinkAge += 1
+              totalSinkAge += 1
+              info(s"storeCanonicalOutput with a latest/toal SinkAge of ${latestSinkAge}/${totalSinkAge}")
             }
             Some(ts)
           case Failure(f)  => None
