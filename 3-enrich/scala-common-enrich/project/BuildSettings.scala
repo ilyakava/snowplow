@@ -20,8 +20,8 @@ object BuildSettings {
 
   // Basic settings for our app
   lazy val basicSettings = Seq[Setting[_]](
-    organization          :=  "com.snowplowanalytics",
-    version               :=  "0.2.0",
+    organization          :=  "com.github.ilyakava", // had to change it from com.snowplowanalytics for sonatype
+    version               :=  "0.2.0-SNAPSHOT",
     description           :=  "Common functionality for enriching raw Snowplow events",
     scalaVersion          :=  "2.10.1",
     scalacOptions         :=  Seq("-deprecation", "-encoding", "utf8",
@@ -71,14 +71,34 @@ object BuildSettings {
   // TODO: update with ivy credentials etc when we start using Nexus
   lazy val publishSettings = Seq[Setting[_]](
    
-    crossPaths := false,
-    publishTo <<= version { version =>
-      val keyFile = (Path.userHome / ".ssh" / "admin_keplar.osk")
-      val basePath = "/var/www/maven.snplow.com/prod/public/%s".format {
-        if (version.trim.endsWith("SNAPSHOT")) "snapshots/" else "releases/"
-      }
-      Some(Resolver.sftp("SnowPlow Analytics Maven repository", "prodbox", 8686, basePath) as ("admin", keyFile))
-    }
+    publishMavenStyle := true,
+    publishTo := {
+      val nexus = "https://oss.sonatype.org/"
+      if (isSnapshot.value)
+        Some("snapshots" at nexus + "content/repositories/snapshots")
+      else
+        Some("releases"  at nexus + "service/local/staging/deploy/maven2")
+    },
+    pomExtra := (
+      <url>http://github.com/ilyakava/scala-common-enrich</url>
+      <licenses>
+        <license>
+          <name>Apache</name>
+          <url>http://www.apache.org/licenses/LICENSE-2.0</url>
+          <distribution>repo</distribution>
+        </license>
+      </licenses>
+      <scm>
+        <url>git@github.com:ilyakava/scala-common-enrich.git</url>
+        <connection>scm:git:git@github.com:ilyakava/scala-common-enrich.git</connection>
+      </scm>
+      <developers>
+        <developer>
+          <id>ilyakava</id>
+          <name>Ilya Kavalerov</name>
+          <url>http://ilyakavalerov.com</url>
+        </developer>
+      </developers>)
   )
 
   lazy val buildSettings = basicSettings ++ scalifySettings ++ maxmindSettings ++ publishSettings
