@@ -37,7 +37,6 @@ object SnowplowKinesisEnrichBuild extends Build {
         Libraries.config,
         Libraries.scalaUtil,
         Libraries.snowplowRawEvent,
-        Libraries.snowplowCommonEnrich,
         Libraries.scalazon,
         Libraries.scalaz7,
         Libraries.specs2,
@@ -50,5 +49,5 @@ object SnowplowKinesisEnrichBuild extends Build {
         Libraries.maxmindGeoip
         // Add your additional libraries here (comma-separated)...
       )
-    )
+    ) dependsOn(Libraries.snowplowCommonEnrich)
 }
