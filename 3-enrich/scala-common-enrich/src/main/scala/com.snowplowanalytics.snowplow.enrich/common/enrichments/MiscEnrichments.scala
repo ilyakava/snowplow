@@ -38,7 +38,7 @@ object MiscEnrichments {
    * @return the complete ETL version
    */
   def etlVersion(hostEtlVersion: String): String =
-    "%s-common-%s".format(hostEtlVersion, ProjectSettings.version)
+    "%s-common-%s".format(hostEtlVersion, ProjectSettings.version.replace("SNAPSHOT", "S"))
 
   /**
    * Validate the specified
