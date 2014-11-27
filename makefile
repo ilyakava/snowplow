@@ -1,11 +1,14 @@
+# default app to deploy to
+APP=snowplow-scala-kinesis-enrich
+
 deploy_clean:
 	rm -rf ./.deploy
 
 set_vars:
 	# set variables for commit message
-	$(eval CURR_DEPLOYER="$(shell whoami;echo $)")
-	$(eval CURR_HASH="$(shell git rev-parse HEAD;echo $)")
-	$(eval CURR_AUTHOR="$(shell git --no-pager show -s --format='%an <%ae>';echo $)")
+	$(eval CURR_DEPLOYER=$(shell whoami;echo $))
+	$(eval CURR_HASH=$(shell git rev-parse HEAD;echo $))
+	$(eval CURR_AUTHOR=$(shell git --no-pager show -s --format='%an <%ae>';echo $))
 
 
 # check for GeoLiteCity.dat
@@ -32,4 +35,3 @@ deploy: deploy_clean set_vars download_geolite
 	git --git-dir ./.deploy/.git --work-tree ./.deploy/ commit -m '${CURR_DEPLOYER} deployed: ${CURR_HASH} by ${CURR_AUTHOR}'
 	# push git repo
 	git --git-dir ./.deploy/.git --work-tree ./.deploy push git@heroku.com:${APP}.git master --force
-	$(info "DONE pushing local branch: ${FROM_BRANCH} to heroku app: ${APP}")
