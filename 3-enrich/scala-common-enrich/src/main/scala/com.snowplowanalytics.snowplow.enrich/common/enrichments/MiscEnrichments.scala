@@ -55,11 +55,10 @@ object MiscEnrichments {
    *         ValidatedString.
    */
   val extractPlatform: (String, String) => ValidatedString = (field, platform) => {
-    platform match {
-      case "web" => "web".success // Web, including Mobile Web
-      case "iot" => "iot".success // Internet of Things (e.g. Arduino tracker)
-      case p => "Field [%s]: [%s] is not a supported tracking platform".format(field, p).fail
-    }
+    if (platform != null && platform.length < 25)
+      platform.success
+    else
+      "Field [%s]: [%s] is not a supported tracking platform".format(field, platform).fail
   }
 
   /**

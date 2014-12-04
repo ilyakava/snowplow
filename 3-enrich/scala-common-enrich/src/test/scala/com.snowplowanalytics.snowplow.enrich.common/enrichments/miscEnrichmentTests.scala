@@ -52,9 +52,8 @@ class ExtractPlatformTest extends Specification with DataTables {
     "SPEC NAME"                      || "INPUT VAL" | "EXPECTED OUTPUT" |
     "valid web"                      !! "web"       ! "web".success     |
     "valid iot (internet of things)" !! "iot"       ! "iot".success     |
-    "invalid empty"                  !! ""          !  err("").fail     |
-    "invalid null"                   !! null        !  err(null).fail   |
-    "invalid platform"               !! "ma"        !  err("ma").fail   |> {
+    "valid mob"                      !! "mob"       ! "mob".success     |
+    "invalid null"                   !! null        !  err(null).fail   |> {
 
       (_, input, expected) => MiscEnrichments.extractPlatform(FieldName, input) must_== expected
     }
