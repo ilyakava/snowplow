@@ -20,8 +20,8 @@ object BuildSettings {
 
   // Basic settings for our app
   lazy val basicSettings = Seq[Setting[_]](
-    organization          :=  "com.github.ilyakava", // had to change it from com.snowplowanalytics for sonatype
-    version               :=  "0.2.1-SNAPSHOT",
+    organization          :=  "com.github.artsy", // had to change it from com.snowplowanalytics for sonatype
+    version               :=  "0.2.2-SNAPSHOT",
     description           :=  "Common functionality for enriching raw Snowplow events",
     scalaVersion          :=  "2.10.1",
     scalacOptions         :=  Seq("-deprecation", "-encoding", "utf8",
@@ -80,7 +80,7 @@ object BuildSettings {
         Some("releases"  at nexus + "service/local/staging/deploy/maven2")
     },
     pomExtra := (
-      <url>http://github.com/ilyakava/scala-common-enrich</url>
+      <url>http://github.com/artsy/snowplow</url>
       <licenses>
         <license>
           <name>Apache</name>
@@ -89,14 +89,19 @@ object BuildSettings {
         </license>
       </licenses>
       <scm>
-        <url>git@github.com:ilyakava/scala-common-enrich.git</url>
-        <connection>scm:git:git@github.com:ilyakava/scala-common-enrich.git</connection>
+        <url>git@github.com:artsy/snowplow.git</url>
+        <connection>scm:git:git@github.com:artsy/snowplow.git</connection>
       </scm>
       <developers>
         <developer>
           <id>ilyakava</id>
           <name>Ilya Kavalerov</name>
           <url>http://ilyakavalerov.com</url>
+        </developer>
+        <developer>
+          <id>joeyAghion</id>
+          <name>Joey Aghion</name>
+          <url>http://joey.aghion.com/</url>
         </developer>
       </developers>)
   )
