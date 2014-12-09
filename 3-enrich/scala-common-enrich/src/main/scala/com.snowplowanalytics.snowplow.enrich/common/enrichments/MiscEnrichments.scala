@@ -28,7 +28,7 @@ import generated.ProjectSettings
  * one of the other modules.
  */
 object MiscEnrichments {
-  
+
   /**
    * The version of this ETL. Appends this version
    * to the supplied "host" ETL.
@@ -38,7 +38,10 @@ object MiscEnrichments {
    * @return the complete ETL version
    */
   def etlVersion(hostEtlVersion: String): String =
-    "%s-common-%s".format(hostEtlVersion, ProjectSettings.version.replace("SNAPSHOT", "S"))
+    if (ProjectSettings.version.contains("SNAPSHOT"))
+      "e-%s-l-%s-s".format(hostEtlVersion.replaceAll("[^\\d.]", ""), ProjectSettings.version.replace("SNAPSHOT", "").replaceAll("[^\\d.]", ""))
+    else
+      "e-%s-l-%s".format(hostEtlVersion.replaceAll("[^\\d.]", ""), ProjectSettings.version.replace("SNAPSHOT", "").replaceAll("[^\\d.]", ""))
 
   /**
    * Validate the specified
