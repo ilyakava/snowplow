@@ -78,6 +78,8 @@ abstract class AbstractSource(config: KinesisEnrichConfig) {
   )
   // Iterate through an enriched CanonicalOutput object and tab separate
   // the fields to a string.
+  // TODO this class should wrap the output in a type, so that we can identify
+  // what kind of string this is
   def tabSeparateCanonicalOutput(output: CanonicalOutput): String = {
     output.getClass.getDeclaredFields
     .filter { field =>
@@ -92,9 +94,11 @@ abstract class AbstractSource(config: KinesisEnrichConfig) {
   // Helper method to enrich an event.
   // TODO: this is a slightly odd design: it's a pure function if our
   // our sink is Test, but it's an impure function (with
-  // storeCanonicalOutput side effect) for the other sinks. We should
+  // storeOutput side effect) for the other sinks. We should
   // break this into a pure function with an impure wrapper.
   def enrichEvent(binaryData: Array[Byte]): Option[String] = {
+    // validate binaryData, is it mapable to Canonical Output? if so store
+    // in the canonical storage
     val canonicalInput = ThriftLoader.toCanonicalInput(binaryData)
 
     canonicalInput.toValidationNel match {
@@ -109,6 +113,8 @@ abstract class AbstractSource(config: KinesisEnrichConfig) {
           } else {
             AnonOctets(config.anonOctets)
           }
+        // TODO: this value should be a particular kind of a type depending
+        // on what kind of enrichment ends up happening
         val canonicalOutput = EnrichmentManager.enrichEvent(
           ipGeo,
           s"kinesis-${generated.Settings.version}",
@@ -116,13 +122,15 @@ abstract class AbstractSource(config: KinesisEnrichConfig) {
           ci
         )
 
+        // the case statement should use the type information to pass the concept
+        // of which stream to put the event on
         canonicalOutput.toValidationNel match {
           case Success(co) =>
             val ts = tabSeparateCanonicalOutput(co)
             for (s <- sink) {
               // TODO: pull this side effect into parent function
-              s.storeCanonicalOutput(ts, co.user_ipaddress)
-              info(s"storeCanonicalOutput")
+              s.storeOutput(ts, co.user_ipaddress) // ts should have a type that helps the KinesisSink know what stream to output this to
+              info(s"storeOutput")
             }
             Some(ts)
           case Failure(f)  => None
