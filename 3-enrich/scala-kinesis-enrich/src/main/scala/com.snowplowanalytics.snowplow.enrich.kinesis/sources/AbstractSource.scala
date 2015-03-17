@@ -45,11 +45,15 @@ import org.slf4j.LoggerFactory
 abstract class AbstractSource(config: KinesisEnrichConfig) {
   private lazy val log = LoggerFactory.getLogger(getClass())
   import log.{error, debug, info, trace}
-  
+
   /**
    * Never-ending processing loop over source stream.
+   * implement in child class
    */
   def run
+
+  // KinesisSource references this provider, so we need this default value
+  var kinesisProvider: AWSCredentialsProvider = _
 
   /**
    * Fields in our CanonicalOutput which are discarded for legacy
@@ -57,27 +61,14 @@ abstract class AbstractSource(config: KinesisEnrichConfig) {
    */
   private val DiscardedFields = Array("page_url", "page_referrer")
 
-  // Initialize a kinesis provider to use with a Kinesis source or sink.
-  protected val kinesisProvider = createKinesisProvider
-
   // Initialize the sink to output enriched events to.
-  // protected val sink: Option[ISink] = config.sink match {
-  //   case Sink.Kinesis => new KinesisSink(kinesisProvider, config).some
-  //   case Sink.Stdouterr => new StdouterrSink().some
-  //   case Sink.Test => None
-  // }
-
-  protected var latestSink = new KinesisSink(kinesisProvider, config).some
-  protected var latestSinkAge = 0
-  protected var totalSinkAge = 0
-
-  implicit def sink(): Option[ISink] = {
-    // if (latestSinkAge > 500) {
-    //   info(s"refreshing KinesisSink")
-    //   latestSink = new KinesisSink(kinesisProvider, config).some
-    //   latestSinkAge = 0
-    // }
-    return latestSink
+  protected val sink: Option[ISink] = config.sink match {
+    case Sink.Kinesis => {
+      kinesisProvider = createKinesisProvider
+      new KinesisSink(kinesisProvider, config).some
+    }
+    case Sink.Stdouterr => new StdouterrSink().some
+    case Sink.Test => None
   }
 
   private lazy val ipGeo = new IpGeo(
@@ -106,7 +97,7 @@ abstract class AbstractSource(config: KinesisEnrichConfig) {
   def enrichEvent(binaryData: Array[Byte]): Option[String] = {
     val canonicalInput = ThriftLoader.toCanonicalInput(binaryData)
 
-    canonicalInput.toValidationNel match { 
+    canonicalInput.toValidationNel match {
 
       case Failure(f)        => None
         // TODO: https://github.com/snowplow/snowplow/issues/463
@@ -128,12 +119,10 @@ abstract class AbstractSource(config: KinesisEnrichConfig) {
         canonicalOutput.toValidationNel match {
           case Success(co) =>
             val ts = tabSeparateCanonicalOutput(co)
-            for (s <- sink()) {
+            for (s <- sink) {
               // TODO: pull this side effect into parent function
               s.storeCanonicalOutput(ts, co.user_ipaddress)
-              latestSinkAge += 1
-              totalSinkAge += 1
-              info(s"storeCanonicalOutput with a latest/toal SinkAge of ${latestSinkAge}/${totalSinkAge}")
+              info(s"storeCanonicalOutput")
             }
             Some(ts)
           case Failure(f)  => None
@@ -159,6 +148,8 @@ abstract class AbstractSource(config: KinesisEnrichConfig) {
       )
     }
   }
+
+  // http://docs.aws.amazon.com/AWSJavaSDK/latest/javadoc/com/amazonaws/auth/ClasspathPropertiesFileCredentialsProvider.html
   private def isCpf(key: String): Boolean = (key == "cpf")
 
   // Wrap BasicAWSCredential objects.
