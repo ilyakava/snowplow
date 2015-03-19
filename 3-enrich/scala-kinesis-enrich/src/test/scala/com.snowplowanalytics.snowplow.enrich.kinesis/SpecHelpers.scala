@@ -163,8 +163,8 @@ enrich {
     out: {
       canonical: "SnowplowEnriched"
       canonical_shards: 1 # Number of shards to use if created.
-      impressions: "SnowplowEnrichedImpressions"
-      impressions_shards: 1 # Number of shards to use if created.
+      impression: "SnowplowEnrichedImpression"
+      impression_shards: 1 # Number of shards to use if created.
       bad: "SnowplowBad" # Not used until #463
       bad_shards: 1 # Number of shards to use if created.
     }

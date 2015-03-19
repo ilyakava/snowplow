@@ -96,16 +96,16 @@ abstract class AbstractSource(config: KinesisEnrichConfig) {
   // our sink is Test, but it's an impure function (with
   // storeOutput side effect) for the other sinks. We should
   // break this into a pure function with an impure wrapper.
-  def enrichEvent(binaryData: Array[Byte]): Option[String] = {
+  def enrichEvent(binaryData: Array[Byte]): Array[Option[String]] = {
     // validate binaryData, is it mapable to Canonical Output? if so store
     // in the canonical storage
     val canonicalInput = ThriftLoader.toCanonicalInput(binaryData)
 
     canonicalInput.toValidationNel match {
 
-      case Failure(f)        => None
+      case Failure(f)        => Array(None)
         // TODO: https://github.com/snowplow/snowplow/issues/463
-      case Success(None)     => None // Do nothing
+      case Success(None)     => Array(None) // Do nothing
       case Success(Some(ci)) => {
         val anonOctets =
           if (!config.anonIpEnabled || config.anonOctets == 0) {
@@ -115,7 +115,7 @@ abstract class AbstractSource(config: KinesisEnrichConfig) {
           }
         // TODO: this value should be a particular kind of a type depending
         // on what kind of enrichment ends up happening
-        val canonicalOutput = EnrichmentManager.enrichEvent(
+        val canonicalOutputs = EnrichmentManager.enrichEvent(
           ipGeo,
           s"kinesis-${generated.Settings.version}",
           anonOctets,
@@ -124,18 +124,21 @@ abstract class AbstractSource(config: KinesisEnrichConfig) {
 
         // the case statement should use the type information to pass the concept
         // of which stream to put the event on
-        canonicalOutput.toValidationNel match {
-          case Success(co) =>
-            val ts = tabSeparateCanonicalOutput(co)
-            for (s <- sink) {
-              // TODO: pull this side effect into parent function
-              s.storeOutput(ts, co.user_ipaddress) // ts should have a type that helps the KinesisSink know what stream to output this to
-              info(s"storeOutput")
-            }
-            Some(ts)
-          case Failure(f)  => None
-            // TODO: https://github.com/snowplow/snowplow/issues/463
-        }
+        canonicalOutputs.map ( canonicalOutput =>
+          canonicalOutput.toValidationNel match {
+            case Success(co) =>
+              val ts = tabSeparateCanonicalOutput(co)
+              for (s <- sink) {
+                val stream = if (co.se_category == "impression") "impression" else "canonical";
+                // TODO: pull this side effect into parent function
+                s.storeOutput(ts, co.user_ipaddress, stream) // ts should have a type that helps the KinesisSink know what stream to output this to
+                info(s"storeOutput")
+              }
+              Some(ts)
+            case Failure(f)  => None
+              // TODO: https://github.com/snowplow/snowplow/issues/463
+          }
+        )
       }
     }
   }
